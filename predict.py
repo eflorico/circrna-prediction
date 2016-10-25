@@ -82,8 +82,8 @@ print("Calculating features...")
 t0 = time.time()
 
 # Concatenate data
-data = crna_data + not_crnas
-labels = [1] * len(crna_data) + [0] * len(not_crnas)
+data = crnas + not_crnas
+labels = [1] * len(crnas) + [0] * len(not_crnas)
 
 # Build features
 k = 3
@@ -93,7 +93,10 @@ for i in range(1, k+1):
 	key_kmers += [ "".join(c) for c in itertools.combinations_with_replacement('ACGT', i) ]
 print(key_kmers)
 
-kmer_features = [ [ gene.count(kmer) for kmer in key_kmers] for gene in data ]
+kmer_features = []
+for gene in data:
+	gene_data = get_gene_data(gene, seqs)
+	kmer_features.append([ gene_data.count(kmer) for kmer in key_kmers ])
 
 # SVM
 t1 = time.time()
