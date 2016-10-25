@@ -1,11 +1,11 @@
 from intervaltree import IntervalTree
-import numpy as np
 from sklearn import svm
 from sklearn.model_selection import KFold
 from parse import *
 import random
 import itertools
 import time
+import numpy as np
 from sklearn.metrics import roc_auc_score, precision_recall_curve, f1_score
 
 print("Loading files...")
@@ -19,8 +19,6 @@ t1 = time.time()
 print("%.2fs" % (t1 - t0))
 print("Loading cRNA data...")
 t0 = time.time()
-
-#crna_data = [ get_gene_data(crna, seqs) for crna in crnas if crna.chr_n == 'chr1' ]
 
 t1 = time.time()
 print("%.2fs" % (t1 - t0))
@@ -43,6 +41,8 @@ t1 = time.time()
 print("%.2fs" % (t1 - t0))
 print("Generating negative examples...")
 t0 = time.time()
+
+bedFile = open('tmp/negatives.bed', 'w')
 
 not_crnas = []
 for crna in crnas:
@@ -74,56 +74,10 @@ for crna in crnas:
 
 	# Choose strand
 	strand = random.choice('+-')
-	gene = Gene(chr_n, start, end, "neg sample", strand)
-	#not_crnas.append(get_gene_data(gene, seqs))
-	not_crnas.append(gene)
 
-t1 = time.time()
-print("%.2fs" % (t1 - t0))
-print("Calculating features...")
-t0 = time.time()
-
-# Concatenate data
-data = crnas + not_crnas
-labels = np.empty([ len(crnas) + len(not_crnas) ], np.int32)
-labels[:len(crnas)] = 1
-labels[len(crnas):] = 0
-
-# Build features
-k = 3
-
-key_kmers = []
-for i in range(1, k+1):
-	key_kmers += [ "".join(c) for c in itertools.combinations_with_replacement('ACGT', i) ]
-print(key_kmers)
-
-kmer_features = np.empty([ len(data), len(key_kmers) ])
-for i, gene in enumerate(data):
-	gene_data = get_gene_data(gene, seqs)
-	kmer_features[i] = [ gene_data.count(kmer) / (gene.end - gene.start) 
-		for kmer in key_kmers ]
-
-# SVM
-t1 = time.time()
-print("%.2fs" % (t1 - t0))
-print("Testing SVM...")
-t0 = time.time()
-
-clf = svm.SVC()
-kf = KFold(n_splits=10, shuffle=True)
-
-print("ROC AUC\tF1")
-
-for train, test in kf.split(kmer_features):
-	clf.fit(kmer_features[train], labels[train])
-
-	y_true = labels[test]
-	y_pred = clf.predict(kmer_features[test])
-
-	roc_auc = roc_auc_score(y_true, y_pred)
-	f1 = f1_score(y_true, y_pred)
-
-	print("%.4f\t%.4f", roc_auc, f1)
+	# Write to file
+	print("%s\t%9d\t%9d\t%s" % (chr_n, start, end, strand), file=bedFile)
+bedFile.close()
 
 t1 = time.time()
 print("%.2fs" % (t1 - t0))
