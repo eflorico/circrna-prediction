@@ -1,0 +1,8 @@
+hsa_hg19_Rybak2015: Genomic loci of circRNAs (positive samples)
+                    Blocks are probably exons - what to use - see course
+all_exons.bed:      Genomic loci of exons (negative samples, when not overlapped with circRNAs)
+hg19_Alu.bed:       Bonus 1
+hg19.fa:            Reference genome
+                    Ignore weird sequences
+                    Q: N, lower case?
+                    Soft/hard masking? Repeats?
