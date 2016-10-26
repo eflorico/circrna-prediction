@@ -19,7 +19,7 @@ not_crnas = not_crnas[:len(crnas)]
 
 t1 = time.time()
 print("%.2fs" % (t1 - t0))
-print("Calculating features...")
+print("Preparing features...")
 t0 = time.time()
 
 # Concatenate data
@@ -32,7 +32,16 @@ labels[len(crnas):] = 0
 alu_trees = {}
 chromosomes = [ 'chr%d' % i for i in range(1, 23) ] + [ 'chrX', 'chrY' ]
 for c in chromosomes:
-	alu_trees[c][c.start:c.end] = True
+	alu_trees[c] = IntervalTree()
+
+for alu in alus:
+	if alu.chr_n in alu_trees:
+		alu_trees[alu.chr_n][alu.start:alu.end] = True
+
+t1 = time.time()
+print("%.2fs" % (t1 - t0))
+print("Building features...")
+t0 = time.time()
 
 # Build features
 alu_flank_lengths = [ 50, 100, 200, 500 ]
@@ -53,6 +62,10 @@ labels = labels[subset]
 
 for i, j in enumerate(subset):
 	gene = data[j]
+
+	if gene.chr_n not in chromosomes: 
+		continue
+
 	gene_data = get_gene_data(gene, seqs)
 
 	# kmers
@@ -69,7 +82,7 @@ for i, j in enumerate(subset):
 		len(alu_trees[gene.chr_n][gene.end:gene.end + length])
 		for length in alu_flank_lengths
 	] + [
-		alu_trees[gene.chr_n][gene.start:gene.end]
+		len(alu_trees[gene.chr_n][gene.start:gene.end])
 	]
 
 	# Concatenate features
