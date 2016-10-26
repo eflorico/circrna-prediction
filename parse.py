@@ -4,27 +4,6 @@ from collections import namedtuple
 
 Gene = namedtuple('Gene', ['chr_n', 'start', 'end', 'gene_name', 'strand'])
 
-def read_fasta(file):
-    from Bio import SeqIO
-
-    fasta = SeqIO.parse(file, "fasta")
-
-    # Only use chrN, chrX, chrY
-    # chromosome_pattern = re.compile('^chr(\d+|X|Y)$')
-
-    seqs = {}
-
-    for record in fasta:
-        #if chromosome_pattern.match(record.id) != None:
-        # Make all upper case
-        seqs[record.id] = record.seq.upper()
-        print("%s sequence loaded" % record.id)
-        break # FIXME
-
-    fasta.close()
-
-    return seqs
-
 def complement(seq):
     complement = { 'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A', 'N': 'N' }
     complseq = [complement[base] for base in seq]
@@ -42,10 +21,6 @@ def read_bed(file):
     for line in bedFile:
         vals = line.split()
         chr_n, start, end = vals[0:3]
-
-        # FIXME
-        if chr_n != 'chr1':
-            continue
 
         # Short BED
         if vals[3] in ['+','-']:
@@ -74,12 +49,16 @@ def get_gene_data(gene, seqs):
 
     return data
 
+ch_filter = re.compile('chr(\d+|X|Y)$')
+
 def build_interval_trees(genes, seqs):
     trees = {}
     for seq_name, _ in seqs.items():
-        trees[seq_name] = IntervalTree()
+        if ch_filter.match(seq_name) != None:
+            trees[seq_name] = IntervalTree()
         
     for gene in genes:
-        trees[gene.chr_n][gene.start:gene.end] = gene
+        if ch_filter.match(gene.chr_n) != None:
+            trees[gene.chr_n][gene.start:gene.end] = gene
 
     return trees

@@ -28,18 +28,24 @@ labels[:len(crnas)] = 1
 labels[len(crnas):] = 0
 
 # Build features
-k = 3
+k = 7
 
 key_kmers = []
 for i in range(1, k+1):
 	key_kmers += [ "".join(c) for c in itertools.combinations_with_replacement('ACGT', i) ]
 
-kmer_features = np.empty([ len(data), len(key_kmers) ])
+features = np.empty([ len(data), len(key_kmers) ])
 for i, gene in enumerate(data):
 	gene_data = get_gene_data(gene, seqs)
-	kmer_features[i] = [ gene_data.count(kmer) / (gene.end - gene.start) 
+
+	# kmers
+	kmer_features = [ gene_data.count(kmer) / (gene.end - gene.start) 
 		for kmer in key_kmers ]
-np.save('tmp/features.npy', kmer_features)
+
+	# Add length of gene
+	features[i] = [ gene.end - gene.start ] + kmer_features
+
+np.save('tmp/features.npy', features)
 np.save('tmp/labels.npy', labels)
 
 t1 = time.time()
