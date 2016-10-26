@@ -26,6 +26,7 @@ START, END = 0, 1
 chromosomes = [ 'chr%d' % i for i in range(1, 23) ] + [ 'chrX', 'chrY' ]
 points = {}
 free_ranges = {}
+free_exons = []
 
 # Only use useful chromosomes
 for c in chromosomes:
@@ -68,6 +69,7 @@ for c in chromosomes:
 		elif geneType == EXON and pointType == START and current_crnas == 0:
 			# Add exon to list if no cRNA is covering it
 			current_exons.append(gene)
+			free_exons.append(gene)
 		elif geneType == EXON and pointType == END and current_crnas == 0:
 			# Add exon to working range if no cRNA is covering it
 			if gene in current_exons:
@@ -118,6 +120,13 @@ for crna in crnas:
 	print("%s\t%9d\t%9d\t%s" % (chr_n, start, end, strand), file=bedFile)
 
 bedFile.close()
+
+# Write unoverlapped exons to file (primitive negative samples)
+exonFile = open('tmp/free_exons.bed', 'w')
+for exon in free_exons:
+	print("%s\t%9d\t%9d\t%s" % (exon.chr_n, exon.start, exon.end, exon.strand), file=exonFile)
+
+exonFile.close()
 
 print("%d %d" % (ok, failed))
 
