@@ -1,4 +1,4 @@
-from parse import *
+from util import *
 import random
 import itertools
 import time
@@ -7,41 +7,34 @@ from pyfasta import Fasta
 from intervaltree import IntervalTree
 import sys
 
-print("Loading files...")
-t0 = time.time()
+tick("Loading files...")
 
 seqs = Fasta('data/hg19.fa')
 crnas = read_bed('data/hsa_hg19_Rybak2015.bed')
 exons = read_bed('data/all_exons.bed')
-alus = read_bed('data/hg19_Alu.bed')
+alus = group_by_chromosome(read_bed('data/hg19_Alu.bed'))
 not_crnas = read_bed('tmp/negatives.bed')
+
+# Don't use more negatives then necessary
 not_crnas = not_crnas[:len(crnas)]
 
-t1 = time.time()
-print("%.2fs" % (t1 - t0))
-print("Preparing features...")
-t0 = time.time()
+tick("Preparing features...")
 
 # Concatenate data
-data = crnas + not_crnas
-labels = np.empty([ len(crnas) + len(not_crnas) ], np.int32)
+data = crnas + exons
+labels = np.empty([ len(data) ], np.int32)
 labels[:len(crnas)] = 1
 labels[len(crnas):] = 0
 
 # Build ALU tree
 alu_trees = {}
-chromosomes = [ 'chr%d' % i for i in range(1, 23) ] + [ 'chrX', 'chrY' ]
-for c in chromosomes:
-	alu_trees[c] = IntervalTree()
+for chr_n, genes in alus.items():
+	alu_trees[chr_n] = IntervalTree()
 
-for alu in alus:
-	if alu.chr_n in alu_trees:
-		alu_trees[alu.chr_n][alu.start:alu.end] = True
+	for alu in genes:
+		alu_trees[chr_n][alu.start:alu.end] = True
 
-t1 = time.time()
-print("%.2fs" % (t1 - t0))
-print("Building features...")
-t0 = time.time()
+tick("Building features...")
 
 # Build features
 alu_flank_lengths = [ 50, 100, 200, 500 ]
@@ -62,10 +55,6 @@ labels = labels[subset]
 
 for i, j in enumerate(subset):
 	gene = data[j]
-
-	if gene.chr_n not in chromosomes: 
-		continue
-
 	gene_data = get_gene_data(gene, seqs)
 
 	# kmers
@@ -95,5 +84,4 @@ for i, j in enumerate(subset):
 np.save('tmp/features.npy', features)
 np.save('tmp/labels.npy', labels)
 
-t1 = time.time()
-print("%.2fs" % (t1 - t0))
+tick()

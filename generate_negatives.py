@@ -1,49 +1,41 @@
 from intervaltree import IntervalTree
-from parse import *
+from util import *
 import random
 import itertools
 import time
 import numpy as np
 from pyfasta import Fasta
 
-print("Loading files...")
-t0 = time.time()
+tick("Loading files...")
 
 seqs = Fasta('data/hg19.fa')
 crnas = read_bed('data/hsa_hg19_Rybak2015.bed')
 exons = read_bed('data/all_exons.bed')
 
-t1 = time.time()
-print("%.2fs" % (t1 - t0))
-print("Finding free ranges...")
-t0 = time.time()
+tick("Finding free ranges...")
 
 # Constants for scanline points
 CRNA, EXON = 0, 1
 START, END = 0, 1
 
 # Group by chromosome
-chromosomes = [ 'chr%d' % i for i in range(1, 23) ] + [ 'chrX', 'chrY' ]
 points = {}
 free_ranges = {}
 free_exons = []
 
-# Only use useful chromosomes
-for c in chromosomes:
-	points[c], free_ranges[c] = [], []
+# Prepare scanline points
+for gene in crnas:
+	points.setdefault(gene.chr_n, []).extend([
+		(CRNA, START, gene.start, gene),
+		(CRNA, END, gene.end, gene)])
 
-for crna in crnas:
-	if crna.chr_n in chromosomes:
-		points[crna.chr_n].append((CRNA, START, crna.start, crna))
-		points[crna.chr_n].append((CRNA, END, crna.end, crna))
+for gene in exons:
+	points.setdefault(gene.chr_n, []).extend([
+		(EXON, START, gene.start, gene),
+		(EXON, END, gene.end, gene)])
 
-for exon in exons:
-	if exon.chr_n in chromosomes:
-		points[exon.chr_n].append((EXON, START, exon.start, exon))
-		points[exon.chr_n].append((EXON, END, exon.end, exon))
-
-# Sort by position, then ends before starts (False < True)
-for c in chromosomes:
+for c in points.keys():
+	# Sort by position, then ends before starts (False < True)
 	points[c] = sorted(points[c], \
 		key=lambda p: (p[2], p[1] == START))
 
@@ -61,7 +53,8 @@ for c in chromosomes:
 			current_exons = []
 
 			if len(current_range) > 0:
-				free_ranges[c].append(( current_range[0], current_range[-1] ))
+				free_ranges.setdefault(c, []).append(
+					( current_range[0], current_range[-1] ))
 				current_range = []
 		elif geneType == CRNA and pointType == END:
 			# Decrease current cRNA count
@@ -69,18 +62,17 @@ for c in chromosomes:
 		elif geneType == EXON and pointType == START and current_crnas == 0:
 			# Add exon to list if no cRNA is covering it
 			current_exons.append(gene)
-			free_exons.append(gene)
 		elif geneType == EXON and pointType == END and current_crnas == 0:
 			# Add exon to working range if no cRNA is covering it
 			if gene in current_exons:
 				current_range.append(gene)
+				free_exons.append(gene)
 				current_exons.remove(gene)
 
-t1 = time.time()
-print("%.2fs" % (t1 - t0))
-print("Generating negative examples...")
-t0 = time.time()
+tick("Generating negative examples...")
 
+# Generate negatives from multiple exons, using the same length and 
+# chromosome distribution as the positives
 bedFile = open('tmp/negatives.bed', 'w')
 
 not_crnas = []
@@ -93,15 +85,13 @@ for crna in crnas:
 	start, end = crna.start, crna.end
 	chr_n = crna.chr_n
 
-	# Only use useful chromosomes
-	if chr_n not in chromosomes: continue
-
 	# Find spot with exactly that length
 	suitable_ranges = [ 
 		r for r in free_ranges[chr_n] 
 		if r[1].end - r[0].start >= length 
 		and r[1].start - r[0].end < length ]
 
+	# Skip if no free range of this length can be found
 	if len(suitable_ranges) == 0:
 		failed += 1
 		continue
@@ -128,7 +118,6 @@ for exon in free_exons:
 
 exonFile.close()
 
-print("%d %d" % (ok, failed))
+print("Successfully found %d negatives, failed to construct %d" % (ok, failed))
 
-t1 = time.time()
-print("%.2fs" % (t1 - t0))
+tick()
