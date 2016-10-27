@@ -11,7 +11,7 @@ tick("Loading files...")
 
 seqs = Fasta('data/hg19.fa')
 crnas = read_bed('data/hsa_hg19_Rybak2015.bed')
-exons = read_bed('data/all_exons.bed')
+#exons = read_bed('data/all_exons.bed')
 alus = group_by_chromosome(read_bed('data/hg19_Alu.bed'))
 not_crnas = read_bed('tmp/negatives.bed')
 
@@ -21,7 +21,7 @@ not_crnas = not_crnas[:len(crnas)]
 tick("Preparing features...")
 
 # Concatenate data
-data = crnas + exons
+data = crnas + not_crnas
 labels = np.empty([ len(data) ], np.int32)
 labels[:len(crnas)] = 1
 labels[len(crnas):] = 0

@@ -86,10 +86,21 @@ def group_by_chromosome(genes):
 
     return groups
 
-def get_gene_data(gene, seqs):
+def get_gene_data(gene, seqs, one_hot=False, pad_len=0):
     data = seqs[gene.chr_n][gene.start:gene.end].upper()
 
     if gene.strand == '-':
         data = reverse_complement(data)
+
+    if one_hot:
+        lookup = { 
+            'A': [1,0,0,0,0],
+            'C': [0,1,0,0,0],
+            'G': [0,0,1,0,0],
+            'T': [0,0,0,1,0],
+            'N': [0,0,0,0,1]
+        }
+
+        data = [ lookup(x) for x in data ] + [ 0. ] * (pad_len - gene.end + gene.start)
 
     return data
