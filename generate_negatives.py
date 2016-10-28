@@ -3,6 +3,7 @@ from util import *
 import random
 import itertools
 import time
+import sys
 import numpy as np
 from pyfasta import Fasta
 
@@ -20,7 +21,7 @@ START, END = 0, 1
 
 # Group by chromosome
 points = {}
-free_ranges = {}
+free_ranges = []
 free_exons = []
 
 # Prepare scanline points
@@ -53,8 +54,7 @@ for c in points.keys():
 			current_exons = []
 
 			if len(current_range) > 0:
-				free_ranges.setdefault(c, []).append(
-					( current_range[0], current_range[-1] ))
+				free_ranges.append(( current_range[0], current_range[-1] ))
 				current_range = []
 		elif geneType == CRNA and pointType == END:
 			# Decrease current cRNA count
@@ -77,37 +77,40 @@ bedFile = open('tmp/negatives.bed', 'w')
 
 not_crnas = []
 ok, failed = 0, 0
-for crna in crnas:
+for i, crna in enumerate(crnas):
 	# Choose length
 	length = crna.end - crna.start
 
 	# Use same chromosome distribution FIXME?
 	start, end = crna.start, crna.end
-	chr_n = crna.chr_n
 
 	# Find spot with exactly that length
-	suitable_ranges = [ 
-		r for r in free_ranges[chr_n] 
-		if r[1].end - r[0].start >= length 
-		and r[1].start - r[0].end < length ]
+	r = None
+	for i in range(0, len(free_ranges)):
+		r = random.pick(free_ranges)
+		if r[1].end - r[0].start >= length \
+		and r[1].start - r[0].end < length
+			break
 
-	# Skip if no free range of this length can be found
-	if len(suitable_ranges) == 0:
-		failed += 1
+	# Skip if no range with that length can be found
+	if r is None:
 		continue
-	else:
-		ok += 1
 
-	r = random.choice(suitable_ranges)
 	start = random.randint(max(r[0].start, r[1].start - length),
 		min(r[0].end, r[1].end - length))
 	end = start + length
 
 	# Choose strand
+	chr_n = r[0].chr_n
 	strand = random.choice('+-')
 
 	# Write to file
 	print("%s\t%9d\t%9d\t%s" % (chr_n, start, end, strand), file=bedFile)
+
+	if i % 1000 == 0:
+		print('.', end='')
+		sys.stdout.flush()
+
 
 bedFile.close()
 
@@ -117,7 +120,5 @@ for exon in free_exons:
 	print("%s\t%9d\t%9d\t%s" % (exon.chr_n, exon.start, exon.end, exon.strand), file=exonFile)
 
 exonFile.close()
-
-print("Successfully found %d negatives, failed to construct %d" % (ok, failed))
 
 tick()

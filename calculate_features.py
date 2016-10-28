@@ -5,16 +5,15 @@ import time
 import numpy as np
 from pyfasta import Fasta
 from intervaltree import IntervalTree
-from sklearn import sklearn.preprocessing
 import sys
 
 tick("Loading files...")
 
 seqs = Fasta('data/hg19.fa')
 crnas = read_bed('data/hsa_hg19_Rybak2015.bed')
-#exons = read_bed('data/all_exons.bed')
 alus = group_by_chromosome(read_bed('data/hg19_Alu.bed'))
 not_crnas = read_bed('tmp/negatives.bed')
+#not_crnas = read_bed('tmp/free_exons.bed')
 
 # Don't use more negatives then necessary
 not_crnas = not_crnas[:len(crnas)]
@@ -59,14 +58,12 @@ key_kmers = []
 for i in range(1, K+1):
 	key_kmers += [ "".join(c) for c in itertools.combinations_with_replacement('ACGT', i) ]
 
-chromosomes = crnas.keys()
-
 # Subset FIXME
 subset = list(range(0, len(data)))
 random.shuffle(subset)
 subset = subset[0:len(data) // 10]
 
-NUM_FEATURES = len(key_kmers) + 6 * len(alu_flank_lengths) + 1 + 24
+NUM_FEATURES = len(key_kmers) + 6 * len(alu_flank_lengths) + 1
 features = np.empty([ len(subset), NUM_FEATURES ])
 labels = labels[subset]
 
@@ -90,20 +87,12 @@ for i, j in enumerate(subset):
 		else:
 			alu_counts.append(0.)
 
-	# alu_counts = [
-	# 	#min(len(alu_trees[gene.chr_n][start:end]), 1) 0/1-score
-	# 	for start, end in flanks(gene)
-		
-	# ]
-
 	# Concatenate features
 	features[i] = kmer_features + alu_counts
 
 	if i % 1000 == 0:
 		print('.', end='')
 		sys.stdout.flush()
-
-features 
 
 np.save('tmp/features.npy', features)
 np.save('tmp/labels.npy', labels)
