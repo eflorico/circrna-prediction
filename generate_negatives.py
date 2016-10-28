@@ -86,9 +86,9 @@ for i, crna in enumerate(crnas):
 	# Find spot with exactly that length
 	r = None
 	for i in range(0, len(free_ranges)):
-		r = random.pick(free_ranges)
+		r = random.choice(free_ranges)
 		if r[1].end - r[0].start >= length \
-		and r[1].start - r[0].end < length
+		and r[1].start - r[0].end < length:
 			break
 
 	# Skip if no range with that length can be found

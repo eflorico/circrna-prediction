@@ -2,9 +2,11 @@ from util import *
 import random
 import itertools
 import time
+import os
 import numpy as np
 from pyfasta import Fasta
 from intervaltree import IntervalTree
+import multiprocessing
 import sys
 
 tick("Loading files...")
@@ -12,10 +14,10 @@ tick("Loading files...")
 seqs = Fasta('data/hg19.fa')
 crnas = read_bed('data/hsa_hg19_Rybak2015.bed')
 alus = group_by_chromosome(read_bed('data/hg19_Alu.bed'))
-not_crnas = read_bed('tmp/negatives.bed')
-#not_crnas = read_bed('tmp/free_exons.bed')
+#not_crnas = read_bed('tmp/negatives.bed')
+not_crnas = read_bed('tmp/free_exons.bed')
 
-# Don't use more negatives then necessary
+# Don't use more negatives than necessary
 not_crnas = not_crnas[:len(crnas)]
 
 tick("Preparing features...")
@@ -53,10 +55,10 @@ def flanks(gene):
 	flanks.append((start, end))
 	return flanks
 
-K = 7
+K = 5
 key_kmers = []
 for i in range(1, K+1):
-	key_kmers += [ "".join(c) for c in itertools.combinations_with_replacement('ACGT', i) ]
+	key_kmers += [ "".join(c) for c in itertools.product('ACGT', repeat=i) ]
 
 # Subset
 #subset = list(range(0, len(data)))
@@ -65,9 +67,8 @@ for i in range(1, K+1):
 #labels = labels[subset]
 
 NUM_FEATURES = len(key_kmers) + 6 * len(alu_flank_lengths) + 1
-features = np.empty([ len(data), NUM_FEATURES ])
 
-for i, j in enumerate(range(0, len(data))):
+def calc_features(j):
 	gene = data[j]
 	gene_data = get_gene_data(gene, seqs)
 
@@ -88,13 +89,24 @@ for i, j in enumerate(range(0, len(data))):
 			alu_counts.append(0.)
 
 	# Concatenate features
-	features[i] = kmer_features + alu_counts
+	return kmer_features + alu_counts
 
+
+pool = multiprocessing.Pool(multiprocessing.cpu_count())
+print("%d processes" % multiprocessing.cpu_count())
+
+features = pool.imap(calc_features, range(0, len(data)), chunksize=20)
+
+# Progress
+for i, _ in enumerate(itertools.tee(features)):
 	if i % 1000 == 0:
 		print('.', end='')
 		sys.stdout.flush()
 
-np.save('tmp/features.npy', features)
+output = np.empty([ len(data), NUM_FEATURES ])
+output[:,:] = list(features)
+
+np.save('tmp/features.npy', output)
 np.save('tmp/labels.npy', labels)
 
 tick()
