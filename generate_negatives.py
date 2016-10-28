@@ -81,7 +81,6 @@ for i, crna in enumerate(crnas):
 	# Choose length
 	length = crna.end - crna.start
 
-	# Use same chromosome distribution FIXME?
 	start, end = crna.start, crna.end
 
 	# Find spot with exactly that length

@@ -58,16 +58,16 @@ key_kmers = []
 for i in range(1, K+1):
 	key_kmers += [ "".join(c) for c in itertools.combinations_with_replacement('ACGT', i) ]
 
-# Subset FIXME
-subset = list(range(0, len(data)))
-random.shuffle(subset)
-subset = subset[0:len(data) // 10]
+# Subset
+#subset = list(range(0, len(data)))
+#random.shuffle(subset)
+#subset = subset[0:len(data) // 10]
+#labels = labels[subset]
 
 NUM_FEATURES = len(key_kmers) + 6 * len(alu_flank_lengths) + 1
-features = np.empty([ len(subset), NUM_FEATURES ])
-labels = labels[subset]
+features = np.empty([ len(data), NUM_FEATURES ])
 
-for i, j in enumerate(subset):
+for i, j in enumerate(range(0, len(data))):
 	gene = data[j]
 	gene_data = get_gene_data(gene, seqs)
 

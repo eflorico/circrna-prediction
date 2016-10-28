@@ -60,6 +60,7 @@ tick("Random Forest...")
 params = { 'n_estimators': 120, 'n_jobs': -1 }
 clf = RandomForestClassifier(**params)
 test(clf)
+exit()
 
 # tick("Feature ranking...")
 
