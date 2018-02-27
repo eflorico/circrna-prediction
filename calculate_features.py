@@ -14,13 +14,16 @@ tick("Loading files...")
 seqs = Fasta('data/hg19.fa')
 crnas = read_bed('data/hsa_hg19_Rybak2015.bed')
 alus = group_by_chromosome(read_bed('data/hg19_Alu.bed'))
-#not_crnas = read_bed('tmp/negatives.bed')
-not_crnas = read_bed('tmp/free_exons.bed')
+
+# DATA SOURCE
+# Change this to use the exons as negative samples
+not_crnas = read_bed('tmp/negatives.bed')
+#not_crnas = read_bed('tmp/free_exons.bed')
 
 # Don't use more negatives than necessary
 not_crnas = not_crnas[:len(crnas)]
 
-tick("Preparing features...")
+tick("Building interval trees...")
 
 # Concatenate data
 data = crnas + not_crnas
@@ -36,7 +39,7 @@ for chr_n, genes in alus.items():
 	for alu in genes:
 		alu_trees[chr_n][alu.start:alu.end] = True
 
-tick("Building features...")
+tick("Calculating features...")
 
 # Build features
 alu_flank_lengths = [ 50, 100, 200, 500 ]

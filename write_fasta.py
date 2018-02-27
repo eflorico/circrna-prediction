@@ -10,7 +10,7 @@ crnas = read_bed('data/hsa_hg19_Rybak2015.bed')
 negs = read_bed('tmp/negatives.bed')
 
 # Write CRNA and negative sample content to fasta file
-# for further processing
+# for further processing by lsgkm
 crnaFile = open('tmp/crnas.fa', 'w')
 for gene in crnas:
 	print(">%s" % gene.gene_name, file=crnaFile)

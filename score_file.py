@@ -1,5 +1,7 @@
 from sklearn.metrics import roc_auc_score, precision_recall_curve, f1_score, average_precision_score
 
+# Score prediction from lsgkm
+
 results = open('lsgkm/bin/crna.cvpred.txt', 'r')
 y_true, y_pred = [], []
 
